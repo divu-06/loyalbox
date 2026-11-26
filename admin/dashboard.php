@@ -9,6 +9,7 @@ $pageTitle = 'Admin Dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>
 <h3>Admin dashboard</h3>
+<a class="btn btn-primary btn-sm mt-2" href="<?= url('admin/generate.php') ?>">Generate codes</a>
 <div class="row g-3 mt-1">
   <div class="col-md-3"><div class="card shadow-sm"><div class="card-body">
     <div class="text-muted small">Customers</div><div class="h2"><?= $customers ?></div></div></div></div>
