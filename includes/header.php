@@ -15,6 +15,22 @@ $flash = get_flash();
 <nav class="navbar navbar-dark bg-dark mb-4">
   <div class="container">
     <a class="navbar-brand" href="<?= url('index.php') ?>">📦 LoyalBox</a>
+    <?php if ($u): ?>
+  <div class="d-none d-md-flex gap-3 me-auto ms-3">
+  <?php if ($u['role'] === 'admin'): ?>
+    <a class="nav-link text-light small" href="<?= url('admin/dashboard.php') ?>">Dashboard</a>
+    <a class="nav-link text-light small" href="<?= url('admin/generate.php') ?>">Codes</a>
+    <a class="nav-link text-light small" href="<?= url('admin/customers.php') ?>">Customers</a>
+    <a class="nav-link text-light small" href="<?= url('admin/rewards.php') ?>">Rewards</a>
+    <a class="nav-link text-light small" href="<?= url('admin/monitor.php') ?>">Monitor</a>
+  <?php else: ?>
+    <a class="nav-link text-light small" href="<?= url('customer/dashboard.php') ?>">Dashboard</a>
+    <a class="nav-link text-light small" href="<?= url('customer/claim.php') ?>">Claim</a>
+    <a class="nav-link text-light small" href="<?= url('customer/rewards.php') ?>">Rewards</a>
+    <a class="nav-link text-light small" href="<?= url('customer/history.php') ?>">History</a>
+  <?php endif; ?>
+  </div>
+<?php endif; ?>
     <div class="d-flex align-items-center gap-2">
       <?php if ($u): ?>
         <span class="text-light small"><?= e($u['name']) ?> (<?= e($u['role']) ?>)</span>
