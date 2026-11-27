@@ -13,6 +13,7 @@ require __DIR__ . '/../includes/header.php';
 <div class="card shadow-sm mt-3" style="max-width:320px"><div class="card-body">
   <div class="text-muted small">Points balance</div>
   <div class="display-5 fw-bold"><?= $balance ?></div>
+  <a class="btn btn-primary mt-3" href="<?= url('customer/claim.php') ?>">Claim a code</a>
 </div></div>
 <p class="text-muted mt-3">Claim codes, history and rewards are coming in the next milestones.</p>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
