@@ -142,27 +142,36 @@ Integrity check (ledger vs redemptions):
 |---|-------|----------|--------|
 | 5.14 | Sum of `redemptions.points_spent` for the customer equals the sum of negative ledger rows | Equal | Pass (160 = 160; balance 30 = 190 earned - 160 spent) |
 
-Test data note: points were added directly in SQL three times (30, 30 and 100) to set up balances for the tests above. These rows have no product code behind them and exist only in the test database.
+Test data note: points were added directly in SQL twice (30 and 100) to set up balances for the tests above. These rows have no product code behind them and exist only in the test database.
 
 ## Milestone 6: Admin management and monitoring
 
-Status: **code written, not yet tested.** Fill in the Result column from what you actually see, and record real failures too.
-
 | # | Test | Expected | Result |
 |---|------|----------|--------|
-| 6.1 | Customer opens `admin/customers.php`, `admin/rewards.php`, `admin/monitor.php` | 403 on each | Pending |
-| 6.2 | Block customer 2 from the admin page while they are logged in elsewhere | Kicked out on the next request; login shows "blocked" | Pending |
-| 6.3 | Unblock them | Login works | Pending |
-| 6.4 | Tamper with a block form's `user_id` to the admin's id | "No change made"; admin stays active | Pending |
-| 6.5 | Add a reward with cost 0 | Error, nothing added | Pending |
-| 6.6 | Add "Test Mug", 20 points, stock 5 | Appears on the customer rewards page | Pending |
-| 6.7 | Untick Active and save | Disappears from the customer page | Pending |
-| 6.8 | Set stock to 0 on an active reward | Customer page shows "Out of stock" | Pending |
-| 6.9 | Customer redeems a reward, then check Monitor | Pending redemption appears; "Mark fulfilled" changes it; history shows the badge | Pending |
-| 6.10 | Customer claims a code, then check Monitor | Claim shows product, points and IP | Pending |
-| 6.11 | Generate a 3-code batch, void it, then try to claim one code | Void count 3; claim gives the generic invalid message | Pending |
-| 6.12 | Compare dashboard numbers with `SELECT status,COUNT(*) FROM product_codes GROUP BY status;` | Numbers match | Pending |
-| 6.13 | Remove the CSRF field from an admin form | Request rejected | Pending |
+| 6.1 | Customer opens `admin/customers.php`, `admin/rewards.php`, `admin/monitor.php` | 403 on each | Pass |
+| 6.2 | Block customer 2 from the admin page while they are logged in elsewhere | Kicked out on the next request; login shows "blocked" | Pass ("This account has been blocked. Please contact the factory.") |
+| 6.3 | Unblock them | Login works | Pass |
+| 6.4 | Tamper with a block form's `user_id` to the admin's id | "No change made"; admin stays active | Pass |
+| 6.5 | Add a reward with cost 0 | Error, nothing added | Pass (the browser's `min="1"` blocks it first; with that attribute removed in dev tools the server answered "Points cost must be between 1 and 100,000.") |
+| 6.6 | Add "Test Mug", 20 points, stock 5 | Appears on the customer rewards page | Pass |
+| 6.7 | Untick Active and save | Disappears from the customer page | Pass |
+| 6.8 | Set stock to 0 on an active reward | Customer page shows "Out of stock" | Pass |
+| 6.9 | Customer redeems a 30-point reward, then check Monitor | Pending redemption appears; "Mark fulfilled" changes it to `fulfilled` | Pass (history showed pending; after Mark fulfilled the status read fulfilled) |
+| 6.10 | Customer claims a code, then check Monitor | Claim shows product, points and IP | Pass |
+| 6.11 | Generate a 3-code batch, void it, then try to claim one code | Void count 3; claim gives the generic invalid message | Pass (database shows 3 void codes; claim answered "That code is invalid or has already been used.") |
+| 6.12 | Compare dashboard numbers with the database | See the expected values below | Pass (dashboard matched: 12 generated, 5 unused, 4 claimed, 3 void; 210 earned, 190 redeemed; 4 pending of 5 total) |
+| 6.13 | Remove the CSRF field from an admin form | Request rejected | Pass |
+
+Expected values for 6.12, from the database at the time of testing:
+
+| Dashboard card | Expected |
+|----------------|----------|
+| Codes generated / unused / claimed | 12 / 5 / 4 (plus 3 void) |
+| Points earned (all time) | 210 |
+| Points redeemed | 190 |
+| Redemptions pending | 4 / 5 |
+
+Check: 210 earned - 190 redeemed = 20 points in customer balances.
 
 ## Bugs and setup issues found during testing
 
@@ -171,6 +180,8 @@ Status: **code written, not yet tested.** Fill in the Result column from what yo
 | B1 | `ratelimit.php` crashed with "strict_types declaration must be the very first statement" after a `require_once` was added above `declare(strict_types=1);` | `php -l` syntax check | Moved the `require_once` below the `declare` line |
 | B2 | A hash check silently tested the wrong value because two shell commands were pasted onto one line | The hash was identical to the previous run (it was the placeholder's hash) | Ran the commands on separate lines; the real code then matched exactly 1 row |
 | B3 | First redemption race test showed only "Not enough points" | Balance was 30, not the 60 the test needs, so nothing could win | Topped up to exactly 60 and re-ran: 1 WON, 5 lost |
+| B4 | Admin dashboard returned HTTP 500: "Cannot redeclare stat()". The AI named a helper `stat()`, which collides with a PHP built-in | Chrome showed HTTP 500; the PHP error log named the file and line | Renamed the helper to `stat_card()` and re-checked with `php -l` and the browser |
+| B5 | A verification query for the dashboard summed earned and redeemed points together, so it printed 20 as "earned" and 190 as "redeemed" | The two numbers could not both be right: 190 redeemed needs at least 190 earned | The dashboard uses separate sums for each type (210 earned, 190 redeemed; 210 - 190 = 20, the net balance); the check query was corrected the same way |
 
 ## Known limitations (also listed in ASSUMPTIONS.md)
 
