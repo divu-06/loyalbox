@@ -15,6 +15,12 @@ $qty = 50;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
+        if (($_POST['action'] ?? '') === 'void_batch') {
+        $st = db()->prepare("UPDATE product_codes SET status='void' WHERE batch_id = ? AND status = 'unused'");
+        $st->execute([(int)($_POST['batch_id'] ?? 0)]);
+        flash('success', $st->rowCount() . ' unused codes voided. Already claimed codes are unaffected.');
+        redirect('admin/generate.php');
+    }
     $product = trim((string)($_POST['product_name'] ?? ''));
     $points  = (int)($_POST['points_value'] ?? 0);
     $qty     = (int)($_POST['quantity'] ?? 0);
@@ -93,15 +99,34 @@ require __DIR__ . '/../includes/header.php';
       <h6>Recent batches</h6>
       <div class="table-responsive">
       <table class="table table-sm align-middle mb-0">
-        <thead><tr><th>#</th><th>Product</th><th>Pts</th><th>Qty</th><th>Unused</th><th>Claimed</th><th>Void</th></tr></thead>
-        <tbody>
-        <?php foreach ($batches as $b): ?>
-          <tr><td><?= (int)$b['id'] ?></td><td><?= e($b['product_name']) ?></td><td><?= (int)$b['points_value'] ?></td>
-              <td><?= (int)$b['quantity'] ?></td><td><?= (int)$b['unused'] ?></td><td><?= (int)$b['claimed'] ?></td><td><?= (int)$b['voided'] ?></td></tr>
-        <?php endforeach; ?>
-        <?php if (!$batches): ?><tr><td colspan="7" class="text-muted">No batches yet.</td></tr><?php endif; ?>
-        </tbody>
-      </table>
+  <thead>
+    <tr><th>#</th><th>Product</th><th>Pts</th><th>Qty</th><th>Unused</th><th>Claimed</th><th>Void</th><th></th></tr>
+  </thead>
+  <tbody>
+  <?php foreach ($batches as $b): ?>
+    <tr>
+      <td><?= (int)$b['id'] ?></td>
+      <td><?= e($b['product_name']) ?></td>
+      <td><?= (int)$b['points_value'] ?></td>
+      <td><?= (int)$b['quantity'] ?></td>
+      <td><?= (int)$b['unused'] ?></td>
+      <td><?= (int)$b['claimed'] ?></td>
+      <td><?= (int)$b['voided'] ?></td>
+      <td>
+        <?php if ((int)$b['unused'] > 0): ?>
+        <form method="post" class="m-0" onsubmit="return confirm('Void all unused codes in this batch?');">
+          <?= csrf_field() ?>
+          <input type="hidden" name="action" value="void_batch">
+          <input type="hidden" name="batch_id" value="<?= (int)$b['id'] ?>">
+          <button class="btn btn-sm btn-outline-danger">Void</button>
+        </form>
+        <?php endif; ?>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  <?php if (!$batches): ?><tr><td colspan="8" class="text-muted">No batches yet.</td></tr><?php endif; ?>
+  </tbody>
+</table>
       </div>
     </div></div>
   </div>
