@@ -16,4 +16,6 @@ require __DIR__ . '/../includes/header.php';
   <a class="btn btn-primary mt-3" href="<?= url('customer/claim.php') ?>">Claim a code</a>
 </div></div>
 <p class="text-muted mt-3">Claim codes, history and rewards are coming in the next milestones.</p>
+<a class="btn btn-outline-primary mt-3" href="<?= url('customer/rewards.php') ?>">Rewards</a>
+<a class="btn btn-outline-secondary mt-3" href="<?= url('customer/history.php') ?>">History</a>
 <?php require __DIR__ . '/../includes/footer.php'; ?>
