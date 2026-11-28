@@ -1,14 +1,20 @@
 # AI Log
 
-How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assistant was Claude. A second assistant (ChatGPT) was used once to cross-check a step. Ten key interactions are listed, including four cases where the AI was wrong.
+How AI tools were used to build LoyalBox, 26 to 27 November 2026. Ten key interactions are listed below, including at least four AI mistakes (entries 5, 6, 9 and 10) and two further corrections (entries 3 and 8).
+
+## Tools used
+
+- **Claude** was the main assistant for planning, code and tests.
+- **ChatGPT** was used to cross-check some steps (entries 1, 3 and 6) and, on 27 November, when my Claude usage limit was reached, to draft the first versions of README.md, ASSUMPTIONS.md, ARCHITECTURE.md and AI_LOG.md. Those drafts were pushed to GitHub (commits ba45e99 to 7607393). I later compared them with the project: the earlier log had 8 entries, and all four documents were rewritten (about 450 lines added and 340 removed). I kept the rewritten versions, which follow the actual development and test history. The earlier drafts remain visible in the Git history.
+- This log was itself drafted with AI help from my development history and then edited by me.
 
 ## 1. Assignment analysis and stack decision
 
-**Prompt (summary):** I gave the assignment PDF, my skills (PHP, MySQL, HTML, CSS, JavaScript), my setup (MacBook Air M4, XAMPP) and the two-day deadline. I asked for the best stack, PHP versus React and Node, the minimum scope, a schema, a fraud approach, a schedule and what to avoid, and told it not to write code yet.
+**Prompt (summary):** I gave Claude the assignment PDF, my skills (PHP, MySQL, HTML, CSS, JavaScript), my setup (MacBook Air M4, XAMPP) and the two-day deadline. I asked for the best stack, PHP versus React and Node, the minimum scope, a schema, a fraud approach, a schedule and what to avoid, and told it not to write code yet.
 
 **AI response:** PHP 8, MySQL with PDO, Bootstrap 5 and XAMPP. A scope of customer claim, history and redeem, plus admin batch generation, customers, rewards and monitoring. A ledger for points, hashed codes and an atomic claim query. A two-day schedule.
 
-**What I decided or changed:** I approved the stack because I already know it and can explain every line in a demo. I changed three things: QR codes optional and typing first, longer random codes (about 128 bits), and sample rewards plus a way to create an admin without committing a password. I also asked for row locks on both the user and the reward during redemption.
+**What I decided or changed:** I approved the stack because I already know it and can explain every line in a demo. After reviewing the plan with ChatGPT I made three changes: QR codes optional and typing first, longer random codes (about 128 bits), and sample rewards plus a way to create an admin without committing a password. I also asked for row locks on both the user and the reward during redemption.
 
 **Outcome:** These decisions are the basis of ARCHITECTURE.md and ASSUMPTIONS.md.
 
@@ -24,9 +30,9 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 ## 3. Database user host (a gap in the AI's setup, caught before it failed)
 
-**What happened:** The AI's setup created the database user only for `localhost`, while `.env` connects to `127.0.0.1`. Depending on how MySQL resolves host names, that can end in "Access denied".
+**What happened:** Claude's setup created the database user only for `localhost`, while `.env` connects to `127.0.0.1`. Depending on how MySQL resolves host names, that can end in "Access denied".
 
-**How it was caught:** A review of the setup steps before running them (second AI plus my own check of `.env`).
+**How it was caught:** ChatGPT, when I asked it to review the setup steps before I ran them, pointed out the mismatch, and I confirmed it against my `.env`.
 
 **Fix:** I created the user for both `localhost` and `127.0.0.1`. The connection test then connected and listed all 7 tables.
 
@@ -42,7 +48,7 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 ## 5. Mistake: a `require_once` placed above `declare(strict_types=1)`
 
-**What the AI got wrong:** The AI told me to add a `require_once` "at the top" of `includes/ratelimit.php` and did not say where. I put it above `declare(strict_types=1);`, and PHP refused to run the file: "strict_types declaration must be the very first statement".
+**What the AI got wrong:** Claude told me to add a `require_once` "at the top" of `includes/ratelimit.php` (an idea that came from ChatGPT's review in entry 6) and did not say where. I put it above `declare(strict_types=1);`, and PHP refused to run the file: "strict_types declaration must be the very first statement".
 
 **How I noticed:** Running `php -l` on every PHP file before opening the browser.
 
@@ -50,11 +56,11 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 **Lesson:** Run `php -l` after every AI edit, and ask the AI for the exact position of any inserted line.
 
-## 6. Mistake: a second AI claimed missing functions that existed
+## 6. Mistake: ChatGPT claimed missing functions that existed
 
-**What happened:** After I pasted the Milestone 3 plan into a second AI, it reported six "integration errors": `csrf_verify`, `flash`, `get_flash`, `url` and `client_ip` missing and `require_role` returning nothing. It supplied a patch.
+**What happened:** After I pasted Claude's Milestone 3 plan into ChatGPT, it reported six "integration errors": `csrf_verify`, `flash`, `get_flash`, `url` and `client_ip` missing and `require_role` returning nothing. It supplied a patch.
 
-**How I noticed it was wrong:** I compared the list with my actual files. All the functions were already defined, and `require_role()` already returned the user. The patch referred to functions that do not exist in my code (`verify_csrf`, `start_secure_session`), so the second AI was reviewing a different codebase.
+**How I noticed it was wrong:** I checked its list against my actual files with Claude's help. All the functions were already defined, and `require_role()` already returned the user. The patch referred to functions that do not exist in my code (`verify_csrf`, `start_secure_session`), so ChatGPT was reviewing a different codebase.
 
 **Fix:** I did not apply the patch. It would have redeclared `csrf_verify()` (a fatal error) and changed `redirect()` so that every relative redirect broke. The one valid point was an extra `require_once` for `db.php`, which led to the problem in entry 5.
 
@@ -74,7 +80,7 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 **AI response:** A transaction that locks the user row and then the reward row, reads the balance only after the lock, decreases stock only if it is above zero, and writes a negative ledger row. Ten automated tests passed.
 
-**What went wrong in testing:** My first race run printed "Not enough points" six times. The AI's instructions assumed the customer had exactly 60 points, but earlier browser tests had lowered the balance to 30, so no request could win and nothing about concurrency had been tested. I noticed that the output had no winner and no change in the database.
+**What went wrong in testing:** My first race run printed "Not enough points" six times. Claude's instructions assumed the customer had exactly 60 points, but earlier browser tests had lowered the balance to 30, so no request could win and nothing about concurrency had been tested. Reviewing the output with Claude showed that there was no winner and no change in the database.
 
 **Fix:** I added points directly to reach 60 and ran it again: one winner, five losers, balance 10, one redemption, stock down by one. I also ran a reconciliation query: the sum of redemption costs (160) equalled the sum of ledger debits (160).
 
@@ -82,7 +88,7 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 ## 9. Mistake: a helper function named `stat()` crashed the admin dashboard
 
-**What the AI got wrong:** In the admin dashboard code the AI defined a helper called `stat()`. PHP already has a built-in function with that name.
+**What the AI got wrong:** In the admin dashboard code Claude defined a helper called `stat()`. PHP already has a built-in function with that name.
 
 **How I noticed:** The admin dashboard returned HTTP 500. The PHP error log said "Cannot redeclare stat()" at line 19 of `admin/dashboard.php`.
 
@@ -92,9 +98,9 @@ How AI tools were used to build LoyalBox, 26 to 27 November 2026. The main assis
 
 ## 10. Mistake: a verification query that added earned and redeemed points together
 
-**What the AI got wrong:** To check the dashboard figures, the AI gave me a query that summed the points of all earn and redeem rows in one number. The output showed "earned 20" and "redeemed 190", which cannot both be true.
+**What the AI got wrong:** To check the dashboard figures, Claude gave me a query that summed the points of all earn and redeem rows in one number. The output showed "earned 20" and "redeemed 190", which cannot both be true.
 
-**How it was caught:** Reading the output next to the data: 190 points redeemed requires at least 190 earned. The 20 was the net balance, because redeem rows are negative.
+**How it was caught:** I pasted the output back, and Claude pointed out that 190 points redeemed requires at least 190 earned. The 20 was the net balance, because redeem rows are negative.
 
 **Fix:** The dashboard already used separate sums (210 earned, 190 redeemed, 210 - 190 = 20). I recorded this as bug B5 in docs/TEST_PLAN.md and used separate sums for the check.
 
